@@ -1,0 +1,19 @@
+{
+  "name": "arsenal",
+  "owner": {
+    "name": "Roshan",
+    "email": "roshan.hanjas@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "loadout",
+      "source": "./plugins/loadout",
+      "description": "A broad toolkit of skills and tools. Starts with frontend coding standards."
+    },
+    {
+      "name": "recall",
+      "source": "./plugins/recall",
+      "description": "Long-term memory for Claude Code, stored in a local SQLite database. Captures facts, preferences, decisions, and project context that survive context compacting and new sessions."
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "description": "recall memory mod hooks module",
+  "modules": ["./register.js"]
+}

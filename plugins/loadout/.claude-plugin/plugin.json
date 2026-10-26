@@ -1,0 +1,9 @@
+{
+  "name": "loadout",
+  "description": "A broad toolkit of skills and tools. Starts with frontend coding standards.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Roshan",
+    "email": "roshan.hanjas@gmail.com"
+  }
+}
