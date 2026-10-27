@@ -144,44 +144,89 @@ export function register(on) {
     if (e.requestId !== PANE) return next(e)
     const { Box, Text, Button } = $.ui.resolve(e)
     const redraw = () => $.ui.invalidate('ui.render')
+    const impColor = (n) => n >= 5 ? 'red' : n >= 4 ? 'yellow' : n >= 3 ? 'green' : n >= 2 ? 'blue' : 'gray'
+    const dots = (n) => '●'.repeat(Math.max(1, Math.min(5, n || 1)))
+
+    // Total active memories, shown in the header.
+    let total = 0
+    if (DB_PATH) {
+      try {
+        const c = await $.process.run(['sqlite3', DB_PATH, "SELECT count(*) FROM memories WHERE status='active';"])
+        total = parseInt((c.stdout || '0').trim(), 10) || 0
+      } catch (err) {
+        // non-fatal
+      }
+    }
 
     const tabButton = (name, label, hotkey) =>
       Button({
         key: 'rtab-' + name,
-        label,
+        label: (paneTab === name ? '▸ ' : '  ') + label,
         hotkey,
         plain: true,
         dimColor: paneTab !== name,
         onPress: () => { paneTab = name; redraw() }
       })
 
-    let body = [Text({ children: ['recall: database not ready'] })]
+    let body = [Text({ children: ['database not ready'], dimColor: true })]
     if (DB_PATH) {
       try {
         if (paneTab === 'types') {
           const r = await $.process.run(['sqlite3', '-json', DB_PATH,
             "SELECT type, count(*) as n FROM memories WHERE status='active' GROUP BY type ORDER BY n DESC;"])
           const rows = parseRows(r.stdout)
+          let max = 1
+          for (let i = 0; i < rows.length; i++) { if (rows[i].n > max) max = rows[i].n }
           body = rows.length
-            ? rows.map(function (row) { return Text({ children: [row.type + '  —  ' + row.n] }) })
-            : [Text({ children: ['No memories yet.'] })]
+            ? rows.map(function (row) {
+                return Box({
+                  flexDirection: 'row',
+                  columnGap: 1,
+                  children: [
+                    Text({ children: [row.type.padEnd(11)], dimColor: true }),
+                    Text({ children: ['█'.repeat(Math.max(1, Math.round((row.n / max) * 12)))], color: 'cyan' }),
+                    Text({ children: [' ' + row.n] })
+                  ]
+                })
+              })
+            : [Text({ children: ['No memories yet.'], dimColor: true })]
         } else {
           const order = paneTab === 'recent' ? 'updated_at DESC' : 'importance DESC, updated_at DESC'
           const r = await $.process.run(['sqlite3', '-json', DB_PATH,
             "SELECT id,type,title,importance FROM memories WHERE status='active' ORDER BY " + order + ' LIMIT 15;'])
           const rows = parseRows(r.stdout)
           body = rows.length
-            ? rows.map(function (m) { return Text({ children: ['#' + m.id + ' [' + m.type + '] (' + m.importance + ') ' + m.title] }) })
-            : [Text({ children: ['No memories yet. Save one with /recall save'] })]
+            ? rows.map(function (m) {
+                return Box({
+                  flexDirection: 'row',
+                  columnGap: 1,
+                  children: [
+                    Text({ children: [dots(m.importance).padEnd(5)], color: impColor(m.importance) }),
+                    Text({ children: [('[' + m.type + ']').padEnd(12)], dimColor: true }),
+                    Text({ children: [m.title], wrap: 'truncate-end' })
+                  ]
+                })
+              })
+            : [Text({ children: ['No memories yet. Save one with /recall save'], dimColor: true })]
         }
       } catch (err) {
-        body = [Text({ children: ['recall: ' + errText(err)] })]
+        body = [Text({ children: ['recall: ' + errText(err)], color: 'red' })]
       }
     }
 
     return Box({
       flexDirection: 'column',
+      padding: 1,
       children: [
+        Box({
+          flexDirection: 'row',
+          columnGap: 1,
+          children: [
+            Text({ children: ['recall'], bold: true, color: 'cyan' }),
+            Text({ children: ['· ' + total + ' memories'], dimColor: true })
+          ]
+        }),
+        Text({ children: ['────────────────────────────'], dimColor: true }),
         Box({
           flexDirection: 'row',
           columnGap: 3,
@@ -190,7 +235,14 @@ export function register(on) {
         Text({ children: [' '] }),
         ...body,
         Text({ children: [' '] }),
-        Button({ key: 'refresh', label: 'Refresh', hotkey: 'r', onPress: () => redraw() })
+        Box({
+          flexDirection: 'row',
+          columnGap: 2,
+          children: [
+            Button({ key: 'refresh', label: 'Refresh', hotkey: 'r', onPress: () => redraw() }),
+            Text({ children: ['1 Top · 2 Recent · 3 Types'], dimColor: true })
+          ]
+        })
       ]
     })
   })
