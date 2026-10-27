@@ -15,7 +15,7 @@ Work conversationally, across turns. Keep your own context light — this stage 
 
 2. **Diverge.** Propose an initial feature set and one or two directions, so the user reacts instead of starting from a blank page. Keep it short.
 
-3. **Converge — small batches.** Ask a *small batch* of sharp, scope-defining questions (aim for 3–5, never a long interrogation), then **wait** for answers. Iterate one or two rounds until the scope is clear. Focus questions on: who it's for, the core objects/entities, what must exist first vs later, and auth/persistence.
+3. **Converge — one question at a time.** Use the **AskUserQuestion** tool to ask scope-defining questions **one at a time** (a single question per call), each with 2–4 suggested answer options so the user can pick quickly (they can always choose "Other" to type their own). **Wait** for each answer before asking the next. Keep going until the scope is clear — typically covering: who it's for, the core objects/entities, what to build first vs later, and auth/persistence. Don't dump questions as a plain-text list; drive each one through the tool.
 
 4. **Recommend a stack.** Use loadout's standards for defaults — invoke the `loadout:frontend-standards` and `loadout:backend-standards` skills so the stack matches (React + Tailwind + shadcn front end; NestJS + Prisma back end). Adjust if the idea calls for something else.
 
@@ -69,6 +69,6 @@ Brief created <date>. Ready for /plan.
 
 ## Rules
 - Stay in brainstorm scope: define **what** and **why**, never **how** or **when**.
-- Small question batches; don't overwhelm.
+- Ask questions one at a time through the AskUserQuestion tool, each with suggested options; never batch them as a text list.
 - Don't write `CONCEPT.md` or save to recall until the user approves the drafted brief.
 - Keep it concise and plain.
