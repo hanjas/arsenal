@@ -11,15 +11,23 @@ Optional notes from the user: $ARGUMENTS
 
 1. **Check inputs.** Confirm `PLAN.md` exists in the project root. If not, stop and tell the user to run `/plan` first. Read it enough to confirm it has phases; don't load the whole thing into deep context — the orchestrator will.
 
-2. **Launch the orchestrator.** Spawn ONE subagent (Agent tool, `subagent_type: general-purpose`) as the **build orchestrator**, and hand it the brief below. Then relay its progress updates and final summary to the user. Do not build anything yourself.
+2. **Run setup first (every build run).** Before launching the orchestrator:
+   a. **Check the working tree.** Run `git status`. If there are uncommitted changes or untracked files, stop, show them, and ask the user how to proceed via the **AskUserQuestion** tool: **Commit them**, **Stash them aside** (restore later with `git stash pop`), or **Cancel** the build. Act on the choice; never switch branches over a dirty tree.
+   b. **Config.** Look for `.claude/loadout.yml`. If it's missing, create the `.claude/` folder and write `loadout.yml` with: `project` (a kebab-case slug from the concept name in `CONCEPT.md`), `baseBranch` (the repo's current default branch), `featureBranch: "feat/{slug}"`, and `createdAt` (today). If it exists, read it.
+   c. **Confirm the base branch.** Show the user the `baseBranch` from the config and confirm it via the **AskUserQuestion** tool. If they pick a different branch, update `loadout.yml`.
+   d. **Fetch latest base.** Run `git fetch origin` so the feature branch starts from the newest base.
+   e. **Feature branch.** Build the branch name from `featureBranch`, replacing `{slug}` with the `project` slug. If that branch already exists, switch to it and **reuse it as-is** (don't auto-merge base into it — avoids surprise merges). Otherwise create it from the **latest base**: `git switch -c <feature-branch> origin/<baseBranch>`. All building happens on this feature branch — never on the base branch.
 
-3. **Relay & stop.** When the orchestrator finishes, summarize what was built, what's left (any blocked items), and that `/verify` or `/ship` is the next stage.
+3. **Launch the orchestrator.** Spawn ONE subagent (Agent tool, `subagent_type: general-purpose`) as the **build orchestrator**, and hand it the brief below. Then relay its progress updates and final summary to the user. Do not build anything yourself.
+
+4. **Relay & stop.** When the orchestrator finishes, summarize what was built, what's left (any blocked items), and that `/verify` or `/ship` is the next stage.
 
 ## Orchestrator brief (pass this to the subagent)
 
 > You are the build orchestrator for this project. Implement `PLAN.md` end to end by delegating to worker subagents. Keep your own context lean.
 >
 > **Setup:**
+> 0. You are already on the project's **feature branch** (the launcher created or switched to it from the base branch, per `.claude/loadout.yml`). Do all work and commits on this branch; never switch to or commit on the base branch.
 > 1. Read `PLAN.md` and, if present, `PROGRESS.md`. If `PROGRESS.md` doesn't exist, create it from the plan's phases/tasks, all marked `pending` (see template).
 > 2. **Phase 0 — scaffold:** if the project isn't set up yet, scaffold it per the plan's stack (e.g. Vite + React + Tailwind, or NestJS; run `shadcn init` for UI projects). Follow `loadout:frontend-standards` / `loadout:backend-standards`.
 >

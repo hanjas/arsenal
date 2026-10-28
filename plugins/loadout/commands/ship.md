@@ -16,18 +16,15 @@ Optional notes from the user: $ARGUMENTS
 2. **Tidy the working tree.** Check `git status`. If there are uncommitted changes, show them and, with the user's OK, commit them with a clear message ending with:
    `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
 
-3. **Put the work on a feature branch.** Check the current branch:
-   - If on the default branch (`master`/`main`), create and switch to a feature branch named `feat/<slug>` (slug from the concept name in `CONCEPT.md`, kebab-case): `git switch -c feat/<slug>`. The local default branch keeps its commits; you simply won't push it.
-   - If already on a non-default branch, use it.
-   - Confirm there are commits to ship (the branch is ahead of `origin/master`). If there's nothing to ship, say so and stop.
+3. **Resolve branches from config.** Read `.claude/loadout.yml` for `baseBranch` and `featureBranch`; the feature branch name is `featureBranch` with `{slug}` = the `project` slug. `/build` already created this branch and committed the work on it, so you should be on it — if you're not, switch to it. Confirm it's ahead of the base branch (has commits to ship); if there's nothing to ship, say so and stop. If `.claude/loadout.yml` is missing, tell the user to run `/build` first.
 
-4. **Confirm the outward actions.** Before pushing, show the user: the branch name, the commits that will go up, and the PR title + base (`master`). Get a clear yes. Nothing outward happens without it.
+4. **Confirm the outward actions.** Before pushing, show the user: the feature branch name, the commits that will go up, and the PR title + base (`baseBranch`). Get a clear yes. Nothing outward happens without it.
 
 5. **Push and open the PR.**
-   - `git push -u origin feat/<slug>`
+   - `git push -u origin <feature-branch>`
    - Assemble the PR body from the artifacts: a short **summary** (from `CONCEPT.md` — what/why), **what was built** (from `PLAN.md` phases / `PROGRESS.md`), and **verification** (from `VERIFY.md`). End the PR body with:
      `🤖 Generated with [Claude Code](https://claude.com/claude-code)`
-   - Open it: `gh pr create --base master --head feat/<slug> --title "<title>" --body "<body>"`
+   - Open it: `gh pr create --base <baseBranch> --head <feature-branch> --title "<title>" --body "<body>"`
 
 6. **Report & stop.** Give the user the PR URL. Optionally save a short `reference` memory to recall (the PR link) via `save_memory` if available. This is the end of the workflow.
 
@@ -50,5 +47,5 @@ Optional notes from the user: $ARGUMENTS
 - **Block** the ship unless `VERIFY.md` is green — no exceptions in this stage.
 - **Confirm before pushing or opening the PR** — these are outward actions.
 - Never force-push; never reset or discard the user's branches.
-- Open a PR into `master` from a `feat/<slug>` branch (model A) — don't push straight to `master`.
+- Open a PR into the `baseBranch` from the feature branch (both from `.claude/loadout.yml`) — never push straight to the base branch.
 - End the PR body with the Claude Code attribution line.
