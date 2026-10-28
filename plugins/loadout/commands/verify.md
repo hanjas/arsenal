@@ -21,7 +21,7 @@ Call the resolved path `<feature-dir>` = `.claude/loadout/<feature-slug>/` for t
 
 1. **Check inputs.** Confirm `<feature-dir>/PLAN.md` (and ideally `<feature-dir>/PROGRESS.md`) exist. If not, stop and tell the user to run `/build` first.
 
-2. **Launch the verifier.** Spawn ONE subagent (Agent tool, `subagent_type: general-purpose`) as the **verifier**, hand it the brief below **and the `<feature-dir>` path**. Keep the main session thin — relay its report.
+2. **Launch the verifier.** Spawn ONE subagent (Agent tool, `subagent_type: general-purpose`, `model: sonnet`) as the **verifier**, hand it the brief below **and the `<feature-dir>` path**. The verifier's work is mechanical execution — running checks and writing the report, not product judgment — so it runs on **Sonnet** to conserve plan usage rather than the session's model. Keep the main session thin — relay its report.
 
 3. **Relay & stop.** Summarize the verdict and point to the next stage: `/ship` if everything's green, or `/build` to fix if not.
 
@@ -91,5 +91,5 @@ Verified <date>.
 - Do **both** static checks and a functional run of the app; a green build is not proof it works.
 - Verify against the plan's acceptance criteria, not just "it compiles".
 - If a `UI-SPEC.md` exists, check `acceptance.md` and contrast against the tokens; report unlogged spec mismatches as **failures** and `PROGRESS.md`-logged ones as **accepted deviations**. If the Playwright MCP is unavailable, mark visual checks **not run**, never passed.
-- Run via the verifier subagent; keep the main session light.
+- Run via the verifier subagent on **Sonnet** (mechanical execution, not the session's model); keep the main session light.
 - Be honest and precise about failures — this stage's value is telling the truth.
