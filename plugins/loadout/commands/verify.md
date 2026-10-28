@@ -1,0 +1,71 @@
+---
+description: End-to-end verification of the built slice. Runs static checks and functionally runs the app against the plan's acceptance criteria, then writes a VERIFY.md report. Report only — it does not fix code.
+argument-hint: (optional notes)
+---
+
+You are running the **verify** stage of the development workflow. You confirm the built slice actually works as the plan promised, and you **report the truth** — you do **not** fix code. Fixing is the `/build` stage.
+
+Optional notes from the user: $ARGUMENTS
+
+## How to run this
+
+1. **Check inputs.** Confirm `PLAN.md` (and ideally `PROGRESS.md`) exist in the project root. If not, stop and tell the user to run `/build` first.
+
+2. **Launch the verifier.** Spawn ONE subagent (Agent tool, `subagent_type: general-purpose`) as the **verifier**, and hand it the brief below. Keep the main session thin — relay its report.
+
+3. **Relay & stop.** Summarize the verdict and point to the next stage: `/ship` if everything's green, or `/build` to fix if not.
+
+## Verifier brief (pass this to the subagent)
+
+> You are the verifier. Confirm the built slice works as promised. **Report only — never edit or fix code.**
+>
+> 1. **Read the targets.** Read `PLAN.md` and `PROGRESS.md`, and the "Build first" acceptance in `CONCEPT.md`. From these, list what *should* work (the done-criteria and key flows).
+>
+> 2. **Static checks** — run each and record pass/fail with the relevant output:
+>    - Install dependencies
+>    - Typecheck
+>    - Lint
+>    - Full test suite
+>    - Production build
+>
+> 3. **Functional checks** — actually **run the app** and exercise the key flows / acceptance criteria from the plan (start the server/app, hit the main paths, confirm expected behavior). Capture what you observed. **Stop/clean up** anything you started when done.
+>
+> 4. **Write the report** to `VERIFY.md` (see template): every check with pass/fail, each functional criterion with the result, and a clear list of failures and gaps vs the plan — described precisely (where it is, what's wrong) but **not fixed**.
+>
+> 5. **Save a short summary to recall** via `save_memory` (`type: project`, `title`: "<name> — verify", `importance: 4`, `project_ref` = the concept name) if recall is available; skip silently if not.
+>
+> 6. **Verdict:** state clearly whether it's ready for `/ship` or needs fixes via `/build`.
+
+## VERIFY.md template
+
+```markdown
+# Verification — <Name>
+
+Verified: <timestamp>
+
+## Static checks
+- Install: <pass/fail>
+- Typecheck: <pass/fail>
+- Lint: <pass/fail>
+- Tests: <pass/fail — X passed, Y failed>
+- Build: <pass/fail>
+
+## Functional checks (against plan acceptance)
+- <flow / criterion>: <pass/fail> — <observation>
+
+## Failures & gaps
+<each problem: where it is, what's wrong — report only, not fixed>
+
+## Verdict
+<Ready for /ship  |  Needs fixes — run /build>
+
+## Status
+Verified <date>.
+```
+
+## Rules
+- **Report only** — never edit, patch, or fix code in this stage.
+- Do **both** static checks and a functional run of the app; a green build is not proof it works.
+- Verify against the plan's acceptance criteria, not just "it compiles".
+- Run via the verifier subagent; keep the main session light.
+- Be honest and precise about failures — this stage's value is telling the truth.
