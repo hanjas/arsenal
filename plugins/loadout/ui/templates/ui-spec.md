@@ -8,7 +8,7 @@ generated: <date>
 # UI Spec — <Project>
 
 Source: PLAN.md "Build first" slice.
-Archetype: <name>  ·  Preset: <name>  ·  Tokens: `.claude/loadout/ui/tokens.json`
+Archetype: <name>  ·  Preset: <name>  ·  Tokens: `./ui/tokens.json`
 
 > Fill one `## Screen` block per screen in the slice. **Every screen must list all five
 > states** — loading, empty, error, success, partial. A spec missing any state is rejected.

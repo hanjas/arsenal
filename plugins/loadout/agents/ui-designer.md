@@ -18,9 +18,10 @@ For *how* the code will eventually be written, defer to `loadout:frontend-standa
 - Existing project tokens / design system always take priority over any preset.
 
 ## Output (per the skill's contract)
-- `UI-SPEC.md` — project root
-- `.claude/loadout/ui/tokens.json`
-- `.claude/loadout/ui/wireframes/*.html`
-- `.claude/loadout/ui/acceptance.md`
+`/plan` hands you the slice's **`<feature-dir>`** = `.claude/loadout/<feature-slug>/`; write everything there:
+- `<feature-dir>/UI-SPEC.md`
+- `<feature-dir>/ui/tokens.json`
+- `<feature-dir>/ui/wireframes/*.html`
+- `<feature-dir>/ui/acceptance.md`
 
 Reject your own spec if any screen is missing a state (loading / empty / error / success / partial), and fix it before you return.

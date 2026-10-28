@@ -21,9 +21,10 @@ This is the **pre-code design-decision layer** of the workflow. It decides *what
 - Tools (Node ESM, run with `node`): `${CLAUDE_PLUGIN_ROOT}/ui/tools/*.mjs`
 
 ## Inputs you read
-- `PLAN.md` (root) — the "Build first" slice: screens, routes, flows. This is the source of the inventory.
-- `CONCEPT.md` (root) — the product context and "Build first" acceptance.
-- `.claude/loadout.yml` → `ui:` block — `mode`, `archetype`, `preset`, `references`, `designSystem` (see Config).
+`/plan` hands you the slice's **`<feature-dir>`** = `.claude/loadout/<feature-slug>/`. All the slice's files live there; the app's own code lives at the project root.
+- `<feature-dir>/PLAN.md` — the "Build first" slice: screens, routes, flows. This is the source of the inventory.
+- `<feature-dir>/CONCEPT.md` — the product context and "Build first" acceptance.
+- `.claude/loadout/config.yml` → `features.<feature-slug>.ui` block — `mode`, `archetype`, `preset`, `references`, `designSystem` (see Config).
 - The project's existing design system (see step 1).
 
 ## Playbook
@@ -33,7 +34,7 @@ Scan the project for an existing design system and report what you find (one lin
 Tailwind config, CSS custom properties / theme files, `components.json` (shadcn), a Mantine/MUI/Chakra theme, Storybook. If one exists, it is authoritative and overrides presets.
 
 ### 2. Pick an archetype
-From `${CLAUDE_PLUGIN_ROOT}/ui/archetypes/`, suggest the best-fit archetype with a **one-line reason**. If `.claude/loadout.yml` `ui.archetype` is already set (or recall has a prior choice), suggest that and say so. The user confirms via the `/plan` gate.
+From `${CLAUDE_PLUGIN_ROOT}/ui/archetypes/`, suggest the best-fit archetype with a **one-line reason**. If the feature's `ui.archetype` in `.claude/loadout/config.yml` is already set (or recall has a prior choice), suggest that and say so. The user confirms via the `/plan` gate.
 
 ### 3. Resolve tokens — strict priority order
 1. **Existing project tokens / design system** (from step 1) — always win. Use them as-is.
@@ -53,17 +54,17 @@ Then:
 Ask for a reference **once**; if none is given, continue with the preset.
 
 ### 4. Screen inventory
-From `PLAN.md` (and `CONCEPT.md`), list the screens, their routes, and the navigation flow. This set drives everything below.
+From `<feature-dir>/PLAN.md` (and `<feature-dir>/CONCEPT.md`), list the screens, their routes, and the navigation flow. This set drives everything below.
 
 ### 5. Wireframes
-Copy `${CLAUDE_PLUGIN_ROOT}/ui/templates/wireframe.html` to `.claude/loadout/ui/wireframes/<screen>.html`, one per screen, and fill the regions with **labelled grey boxes**. Never style them — neutral greys, system font, labels only.
+Copy `${CLAUDE_PLUGIN_ROOT}/ui/templates/wireframe.html` to `<feature-dir>/ui/wireframes/<screen>.html`, one per screen, and fill the regions with **labelled grey boxes**. Never style them — neutral greys, system font, labels only.
 If the user supplied the design (Figma link or screenshots), **skip wireframing** and derive the spec from those instead.
 
 ### 6. UI spec
-Fill `${CLAUDE_PLUGIN_ROOT}/ui/templates/ui-spec.md` into `UI-SPEC.md` at the **project root**, with every screen and — for each — **all five states** (loading / empty / error / success / partial), responsive behaviour at 1440 and 390, a11y notes (focus order, labels, contrast), the component map, and interactions. During the component map, check the **shadcn MCP** registry to confirm whether a component already exists before marking anything `new`. **Reject a spec that is missing any state** and fix it before returning. Write the frontmatter fields (`archetype`, `preset`, `generated`); `/plan` stamps `plan_hash` with `git hash-object PLAN.md` on approval.
+Fill `${CLAUDE_PLUGIN_ROOT}/ui/templates/ui-spec.md` into `<feature-dir>/UI-SPEC.md`, with every screen and — for each — **all five states** (loading / empty / error / success / partial), responsive behaviour at 1440 and 390, a11y notes (focus order, labels, contrast), the component map, and interactions. During the component map, check the **shadcn MCP** registry to confirm whether a component already exists before marking anything `new`. **Reject a spec that is missing any state** and fix it before returning. Write the frontmatter fields (`archetype`, `preset`, `generated`); `/plan` stamps `plan_hash` with `git hash-object <feature-dir>/PLAN.md` on approval.
 
 ### 7. Acceptance
-Generate `.claude/loadout/ui/acceptance.md` from the spec using `${CLAUDE_PLUGIN_ROOT}/ui/templates/acceptance.md`: one line per screen × state × breakpoint, plus a contrast line per screen.
+Generate `<feature-dir>/ui/acceptance.md` from the spec using `${CLAUDE_PLUGIN_ROOT}/ui/templates/acceptance.md`: one line per screen × state × breakpoint, plus a contrast line per screen.
 
 ### 8. Approval gate — handled by `/plan`, not here
 You **cannot** converse with the user. Return to `/plan`: a short summary (archetype, preset/token source, screen count) and the wireframe paths. `/plan` presents it, collects feedback, and re-spawns you with that feedback. On a revision pass, loop only over **steps 5–6** (wireframes + spec), then return again. Only `/plan` persists the approval and the `ui:` config.
@@ -103,23 +104,26 @@ The dark theme uses the **same step indices** from each scale's dark values.
 `chart-2..5` is a pragmatic default — refine with the `dataviz` skill for chart-heavy archetypes.
 
 ## Output contract
-- `UI-SPEC.md` — project root (human-facing, next to `PLAN.md`)
-- `.claude/loadout/ui/tokens.json`
-- `.claude/loadout/ui/wireframes/*.html`
-- `.claude/loadout/ui/acceptance.md`
+All paths are inside the slice's `<feature-dir>` (`.claude/loadout/<feature-slug>/`):
+- `<feature-dir>/UI-SPEC.md` — human-facing, next to `PLAN.md`
+- `<feature-dir>/ui/tokens.json`
+- `<feature-dir>/ui/wireframes/*.html`
+- `<feature-dir>/ui/acceptance.md`
 
 ## Config & memory
-- **`.claude/loadout.yml` `ui:` block is the source of truth** (committed, read by build/verify):
+- **The feature's `ui:` block in `.claude/loadout/config.yml` is the source of truth** (committed, read by build/verify):
   ```yaml
-  ui:
-    mode: auto        # auto | always | never — whether /plan runs the designer
-    archetype: data-dashboard
-    preset: compact-neutral
-    references: []    # URLs or screenshot paths the user supplied
-    designSystem: shadcn   # or null / the detected system
+  features:
+    <feature-slug>:
+      ui:
+        mode: auto        # auto | always | never — whether /plan runs the designer
+        archetype: data-dashboard
+        preset: compact-neutral
+        references: []    # URLs or screenshot paths the user supplied
+        designSystem: shadcn   # or null / the detected system
   ```
   `/plan` writes this on approval.
-- **recall is advisory only:** `/plan` may save the archetype/preset choice (`type: decision`) so a later session can *pre-suggest* it. recall never overrides `.claude/loadout.yml` or an existing project design system.
+- **recall is advisory only:** `/plan` may save the archetype/preset choice (`type: decision`) so a later session can *pre-suggest* it. recall never overrides `.claude/loadout/config.yml` or an existing project design system.
 
 ## Rules
 - Never style the wireframes; never name a brand, website, or URL (open-source systems like shadcn/Radix/Tailwind are fine).

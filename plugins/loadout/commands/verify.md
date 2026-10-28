@@ -1,25 +1,35 @@
 ---
 description: End-to-end verification of the built slice. Runs static checks and functionally runs the app against the plan's acceptance criteria, then writes a VERIFY.md report. Report only — it does not fix code.
-argument-hint: (optional notes)
+argument-hint: (optional notes; --feature <slug> to target a slice)
 ---
 
 You are running the **verify** stage of the development workflow. You confirm the built slice actually works as the plan promised, and you **report the truth** — you do **not** fix code. Fixing is the `/build` stage.
 
 Optional notes from the user: $ARGUMENTS
 
+## Resolve the feature
+
+loadout keeps everything under `.claude/loadout/<feature-slug>/` (see `/brainstorm` for the full layout). Pick the slice this run acts on, in order:
+1. `--feature <slug>` in `$ARGUMENTS`, if given.
+2. else `activeFeature` from `.claude/loadout/config.yml`.
+3. else if exactly **one** folder exists under `.claude/loadout/`, use it.
+4. else (several, or none) ask the user via **AskUserQuestion** which slice to verify.
+
+Call the resolved path `<feature-dir>` = `.claude/loadout/<feature-slug>/` for the rest of this stage.
+
 ## How to run this
 
-1. **Check inputs.** Confirm `PLAN.md` (and ideally `PROGRESS.md`) exist in the project root. If not, stop and tell the user to run `/build` first.
+1. **Check inputs.** Confirm `<feature-dir>/PLAN.md` (and ideally `<feature-dir>/PROGRESS.md`) exist. If not, stop and tell the user to run `/build` first.
 
-2. **Launch the verifier.** Spawn ONE subagent (Agent tool, `subagent_type: general-purpose`) as the **verifier**, and hand it the brief below. Keep the main session thin — relay its report.
+2. **Launch the verifier.** Spawn ONE subagent (Agent tool, `subagent_type: general-purpose`) as the **verifier**, hand it the brief below **and the `<feature-dir>` path**. Keep the main session thin — relay its report.
 
 3. **Relay & stop.** Summarize the verdict and point to the next stage: `/ship` if everything's green, or `/build` to fix if not.
 
 ## Verifier brief (pass this to the subagent)
 
-> You are the verifier. Confirm the built slice works as promised. **Report only — never edit or fix code.**
+> You are the verifier. The slice's loadout artifacts live in the **`<feature-dir>`** path handed to you. Confirm the built slice works as promised. **Report only — never edit or fix code.**
 >
-> 1. **Read the targets.** Read `PLAN.md` and `PROGRESS.md`, and the "Build first" acceptance in `CONCEPT.md`. From these, list what *should* work (the done-criteria and key flows).
+> 1. **Read the targets.** Read `<feature-dir>/PLAN.md` and `<feature-dir>/PROGRESS.md`, and the "Build first" acceptance in `<feature-dir>/CONCEPT.md`. From these, list what *should* work (the done-criteria and key flows).
 >
 > 2. **Static checks** — run each and record pass/fail with the relevant output:
 >    - Install dependencies
@@ -30,14 +40,14 @@ Optional notes from the user: $ARGUMENTS
 >
 > 3. **Functional checks** — actually **run the app** and exercise the key flows / acceptance criteria from the plan (start the server/app, hit the main paths, confirm expected behavior). Capture what you observed. **Stop/clean up** anything you started when done.
 >
-> 4. **UI design checks** — only if `UI-SPEC.md` (root) and `.claude/loadout/ui/acceptance.md` exist:
+> 4. **UI design checks** — only if `<feature-dir>/UI-SPEC.md` and `<feature-dir>/ui/acceptance.md` exist:
 >    - Use the **Playwright MCP** to screenshot each screen at **1440** and **390**, in **light** and **dark**, and check **every line** of `acceptance.md`.
->    - Check **contrast** against `.claude/loadout/ui/tokens.json` (text/bg ≥ 4.5:1, UI/boundary ≥ 3:1).
->    - Read the **Deviations** section of `PROGRESS.md`: a spec mismatch that is **logged** there is an **accepted deviation** (pass, with a note); a mismatch that is **not logged** is a **failure**.
+>    - Check **contrast** against `<feature-dir>/ui/tokens.json` (text/bg ≥ 4.5:1, UI/boundary ≥ 3:1).
+>    - Read the **Deviations** section of `<feature-dir>/PROGRESS.md`: a spec mismatch that is **logged** there is an **accepted deviation** (pass, with a note); a mismatch that is **not logged** is a **failure**.
 >    - **If the Playwright MCP isn't available, skip the visual lines and report them as "not run" — never as passed.** Not-run visual checks are not failures by themselves.
 >    - **If the Playwright MCP is present but its browser isn't installed** (a launch/"browser not found" error), also report the visual lines as **not run**, with the fix: `npx playwright install chromium`. Still not a failure.
 >
-> 5. **Write the report** to `VERIFY.md` (see template): every check with pass/fail, each functional criterion with the result, the UI-check results, and a clear list of failures and gaps vs the plan — described precisely (where it is, what's wrong) but **not fixed**.
+> 5. **Write the report** to `<feature-dir>/VERIFY.md` (see template): every check with pass/fail, each functional criterion with the result, the UI-check results, and a clear list of failures and gaps vs the plan — described precisely (where it is, what's wrong) but **not fixed**.
 >
 > 6. **Save a short summary to recall** via `save_memory` (`type: project`, `title`: "<name> — verify", `importance: 4`, `project_ref` = the concept name) if recall is available; skip silently if not.
 >
