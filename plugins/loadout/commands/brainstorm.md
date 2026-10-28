@@ -7,6 +7,20 @@ You are running the **brainstorm** stage of the development workflow. The user h
 
 The idea (may be empty): $ARGUMENTS
 
+## Where loadout keeps its files
+
+Everything a loadout run produces lives under the project's `.claude/loadout/` folder, grouped **per feature slice**:
+
+```
+.claude/loadout/
+  config.yml                 project-level config + active-feature pointer
+  <feature-slug>/            one folder per slice
+    CONCEPT.md  PLAN.md  PROGRESS.md  VERIFY.md  UI-SPEC.md
+    ui/ { tokens.json, acceptance.md, wireframes/*.html }
+```
+
+`<feature-slug>` is a kebab-case slug derived from the concept name (e.g. "Kanban Task Tracker" → `kanban-task-tracker`). This stage owns creating that folder and the config. Nothing is written to disk until the user approves the brief.
+
 ## How to run this
 
 Work conversationally, across turns. Keep your own context light — this stage only produces a brief.
@@ -21,10 +35,37 @@ Work conversationally, across turns. Keep your own context light — this stage 
 
 5. **Draft the brief inline** (see template) and show it to the user for a thumbs-up. Capture the **full vision**, then split it into **Build first** (the first slice to build) and **Later** (explicitly deferred). "Build first" is *what we build first*, not a minimum product — the full vision is preserved.
 
-6. **On approval, persist and stop:**
-   - Write the brief to **`CONCEPT.md`** in the current project (working directory) root.
-   - Save it to **recall** via the `save_memory` tool (`type: project`, a short `title`, `importance: 4`, relevant `tags`, `project_ref` = the concept name) if recall is available. If it isn't, skip silently.
-   - Then **stop.** Tell the user the brief is saved and that `/plan` is the next stage. Do not start planning or coding.
+6. **On approval, scaffold and persist:**
+   - **Derive the slug** — kebab-case the concept name. This is the feature folder name.
+   - **Ensure the scaffold** (see the shared step below): create `.claude/loadout/<feature-slug>/`, write/update `.claude/loadout/config.yml`, and offer the `CLAUDE.md` seed.
+   - **Write the brief** to **`.claude/loadout/<feature-slug>/CONCEPT.md`**.
+   - **Save it to recall** via the `save_memory` tool (`type: project`, a short `title`, `importance: 4`, relevant `tags`, `project_ref` = the concept name) if recall is available. If it isn't, skip silently.
+   - Then **stop.** Tell the user where the brief was saved (the path) and that `/plan` is the next stage. Do not start planning or coding.
+
+## Shared scaffold step (also run by `/plan`)
+
+This step is idempotent — safe to run again. `/plan` runs the same step when the user skips brainstorm and pastes a concept.
+
+1. **Ensure the config.** If `.claude/loadout/config.yml` is missing, create the `.claude/loadout/` folder and write it with:
+   - `baseBranch` — the repo's current default branch (fallback to `main` if not a git repo yet)
+   - `branchTemplate: "feat/{slug}"`
+   - `activeFeature: <feature-slug>`
+   - a `features:` map with one entry for `<feature-slug>` holding `createdAt: <today>`
+   If it exists, read it, add the `<feature-slug>` entry under `features:` if absent, and set `activeFeature: <feature-slug>` (this feature is now the one the pipeline acts on).
+2. **Ensure the feature folder.** Create `.claude/loadout/<feature-slug>/` if it doesn't exist.
+3. **Offer the `CLAUDE.md` seed (opt-in, never destructive).** If the project root has **no** `CLAUDE.md`, offer via **AskUserQuestion** to create one seeded with a one-paragraph project summary from the concept plus a short "Built with loadout" note. If a `CLAUDE.md` already exists, **do not touch it** (at most offer to append a brief loadout section, only on a yes). Never overwrite an existing `CLAUDE.md`.
+
+`config.yml` shape:
+
+```yaml
+baseBranch: master
+branchTemplate: "feat/{slug}"
+activeFeature: <feature-slug>
+features:
+  <feature-slug>:
+    createdAt: <date>
+    # ui: block is added by /plan's UI design phase
+```
 
 ## CONCEPT.md template
 
@@ -70,5 +111,6 @@ Brief created <date>. Ready for /plan.
 ## Rules
 - Stay in brainstorm scope: define **what** and **why**, never **how** or **when**.
 - Ask questions one at a time through the AskUserQuestion tool, each with suggested options; never batch them as a text list.
-- Don't write `CONCEPT.md` or save to recall until the user approves the drafted brief.
+- Don't scaffold, write `CONCEPT.md`, or save to recall until the user approves the drafted brief.
+- Never overwrite an existing `CLAUDE.md` — the seed is opt-in and non-destructive.
 - Keep it concise and plain.
