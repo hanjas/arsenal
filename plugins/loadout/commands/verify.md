@@ -30,11 +30,18 @@ Optional notes from the user: $ARGUMENTS
 >
 > 3. **Functional checks** — actually **run the app** and exercise the key flows / acceptance criteria from the plan (start the server/app, hit the main paths, confirm expected behavior). Capture what you observed. **Stop/clean up** anything you started when done.
 >
-> 4. **Write the report** to `VERIFY.md` (see template): every check with pass/fail, each functional criterion with the result, and a clear list of failures and gaps vs the plan — described precisely (where it is, what's wrong) but **not fixed**.
+> 4. **UI design checks** — only if `UI-SPEC.md` (root) and `.claude/loadout/ui/acceptance.md` exist:
+>    - Use the **Playwright MCP** to screenshot each screen at **1440** and **390**, in **light** and **dark**, and check **every line** of `acceptance.md`.
+>    - Check **contrast** against `.claude/loadout/ui/tokens.json` (text/bg ≥ 4.5:1, UI/boundary ≥ 3:1).
+>    - Read the **Deviations** section of `PROGRESS.md`: a spec mismatch that is **logged** there is an **accepted deviation** (pass, with a note); a mismatch that is **not logged** is a **failure**.
+>    - **If the Playwright MCP isn't available, skip the visual lines and report them as "not run" — never as passed.** Not-run visual checks are not failures by themselves.
+>    - **If the Playwright MCP is present but its browser isn't installed** (a launch/"browser not found" error), also report the visual lines as **not run**, with the fix: `npx playwright install chromium`. Still not a failure.
 >
-> 5. **Save a short summary to recall** via `save_memory` (`type: project`, `title`: "<name> — verify", `importance: 4`, `project_ref` = the concept name) if recall is available; skip silently if not.
+> 5. **Write the report** to `VERIFY.md` (see template): every check with pass/fail, each functional criterion with the result, the UI-check results, and a clear list of failures and gaps vs the plan — described precisely (where it is, what's wrong) but **not fixed**.
 >
-> 6. **Verdict:** state clearly whether it's ready for `/ship` or needs fixes via `/build`.
+> 6. **Save a short summary to recall** via `save_memory` (`type: project`, `title`: "<name> — verify", `importance: 4`, `project_ref` = the concept name) if recall is available; skip silently if not.
+>
+> 7. **Verdict:** state clearly whether it's ready for `/ship` or needs fixes via `/build`. Unlogged UI mismatches and failing checks block; not-run visual checks are noted, not blocking.
 
 ## VERIFY.md template
 
@@ -53,6 +60,12 @@ Verified: <timestamp>
 ## Functional checks (against plan acceptance)
 - <flow / criterion>: <pass/fail> — <observation>
 
+## UI design checks (if a UI-SPEC exists)
+- Acceptance lines: <X passed / Y failed / Z not run>
+- Contrast vs tokens: <pass/fail>
+- Accepted deviations (logged in PROGRESS.md): <list or none>
+- Visual checks: <ran | not run — Playwright MCP unavailable | not run — browser not installed, run `npx playwright install chromium`>
+
 ## Failures & gaps
 <each problem: where it is, what's wrong — report only, not fixed>
 
@@ -67,5 +80,6 @@ Verified <date>.
 - **Report only** — never edit, patch, or fix code in this stage.
 - Do **both** static checks and a functional run of the app; a green build is not proof it works.
 - Verify against the plan's acceptance criteria, not just "it compiles".
+- If a `UI-SPEC.md` exists, check `acceptance.md` and contrast against the tokens; report unlogged spec mismatches as **failures** and `PROGRESS.md`-logged ones as **accepted deviations**. If the Playwright MCP is unavailable, mark visual checks **not run**, never passed.
 - Run via the verifier subagent; keep the main session light.
 - Be honest and precise about failures — this stage's value is telling the truth.

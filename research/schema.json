@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "arsenal/research/schema.json",
+  "title": "Reference extraction record",
+  "description": "One file per site at research/raw/<slug>.json. A site holds up to 4 runs (1440x900 and 390x844, each in light and dark). Numeric fields come from research/extract.mjs run via the Playwright MCP's browser_evaluate; qualitative fields (layout.pattern, components notes, motion.level, notes) come from judgment. Raw values live here (gitignored); only derived, anonymised outputs are promoted into the plugin.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["slug", "category", "type", "status", "runs"],
+  "properties": {
+    "slug": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "Anonymous id for the site; never a brand name in shipped output." },
+    "category": { "type": "string" },
+    "type": { "type": "string" },
+    "status": { "enum": ["done", "skipped"] },
+    "notes": { "type": "string", "description": "Why skipped (blocked/CAPTCHA/timeout) or any qualitative observation." },
+    "darkMode": {
+      "type": ["boolean", "null"],
+      "description": "Site-level: do the light and dark runs actually differ? Computed by comparing the two scheme runs; null if only one scheme ran."
+    },
+    "runs": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/run" }
+    }
+  },
+  "$defs": {
+    "freq": {
+      "type": "object",
+      "description": "value -> count map",
+      "additionalProperties": { "type": "integer" }
+    },
+    "roleColor": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "color": { "type": ["string", "null"] },
+        "background": { "type": ["string", "null"] },
+        "border": { "type": ["string", "null"] }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["viewport", "scheme"],
+      "properties": {
+        "viewport": { "enum": ["1440x900", "390x844"] },
+        "scheme": { "enum": ["light", "dark"] },
+        "cssVars": {
+          "type": "object",
+          "description": "All custom properties on :root/html/body.",
+          "additionalProperties": { "type": "string" }
+        },
+        "roleColors": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Computed color/background/border for body bg, body text, h1-h3, primary button, links, card surfaces, borders, inputs.",
+          "properties": {
+            "bodyBg": { "type": ["string", "null"] },
+            "bodyText": { "type": ["string", "null"] },
+            "h1": { "$ref": "#/$defs/roleColor" },
+            "h2": { "$ref": "#/$defs/roleColor" },
+            "h3": { "$ref": "#/$defs/roleColor" },
+            "primaryButton": { "$ref": "#/$defs/roleColor" },
+            "link": { "$ref": "#/$defs/roleColor" },
+            "card": { "$ref": "#/$defs/roleColor" },
+            "border": { "type": ["string", "null"] },
+            "input": { "$ref": "#/$defs/roleColor" }
+          }
+        },
+        "colorArea": {
+          "type": "object",
+          "description": "Background color -> painted area (px^2), top entries only.",
+          "additionalProperties": { "type": "number" }
+        },
+        "typography": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fontSize": { "$ref": "#/$defs/freq" },
+            "fontWeight": { "$ref": "#/$defs/freq" },
+            "lineHeight": { "$ref": "#/$defs/freq" },
+            "letterSpacing": { "$ref": "#/$defs/freq" },
+            "familyClass": {
+              "type": "object",
+              "description": "Family CLASSIFICATION counts only (sans/serif/mono/display) — never the font name.",
+              "additionalProperties": { "type": "integer" }
+            }
+          }
+        },
+        "spacing": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "freq": { "$ref": "#/$defs/freq" },
+            "base": { "type": ["number", "null"], "description": "Inferred base unit." },
+            "scale": { "type": "array", "items": { "type": "number" } }
+          }
+        },
+        "radius": { "$ref": "#/$defs/freq" },
+        "shadows": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "levels": { "type": "integer", "description": "Distinct box-shadow values = elevation levels." },
+            "values": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "motion": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "transitionDurations": { "type": "array", "items": { "type": "string" } },
+            "animationDurations": { "type": "array", "items": { "type": "string" } },
+            "easings": { "type": "array", "items": { "type": "string" } },
+            "level": { "enum": ["none", "subtle", "expressive"], "description": "Qualitative judgment." }
+          }
+        },
+        "layout": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "landmarks": { "type": "object", "additionalProperties": { "type": "integer" } },
+            "sidebar": { "type": "boolean" },
+            "maxContentWidth": { "type": ["number", "null"] },
+            "gridColumns": { "$ref": "#/$defs/freq" },
+            "pattern": { "type": "string", "description": "Qualitative: e.g. sidebar-nav + topbar + content-grid." }
+          }
+        },
+        "components": {
+          "type": "object",
+          "description": "Heuristic element counts.",
+          "additionalProperties": false,
+          "properties": {
+            "tables": { "type": "integer" },
+            "inputs": { "type": "integer" },
+            "forms": { "type": "integer" },
+            "cards": { "type": "integer" },
+            "tabs": { "type": "integer" },
+            "modals": { "type": "integer" },
+            "charts": { "type": "integer" },
+            "badges": { "type": "integer" }
+          }
+        },
+        "density": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "controlHeight": { "type": ["number", "null"] },
+            "rowHeight": { "type": ["number", "null"] },
+            "baseFontSize": { "type": ["number", "null"] }
+          }
+        },
+        "breakpoints": { "type": "array", "items": { "type": "number" } },
+        "schemeSignal": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Signals used to confirm the applied scheme and compute site-level darkMode."
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "url, sampled/total element counts, actual viewport."
+        }
+      }
+    }
+  }
+}

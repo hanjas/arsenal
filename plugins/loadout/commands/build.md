@@ -10,6 +10,7 @@ Optional notes from the user: $ARGUMENTS
 ## How to run this
 
 1. **Check inputs.** Confirm `PLAN.md` exists in the project root. If not, stop and tell the user to run `/plan` first. Read it enough to confirm it has phases; don't load the whole thing into deep context — the orchestrator will.
+   If `UI-SPEC.md` exists at the root, this slice has an approved UI design. **Check it's current:** compare its frontmatter `plan_hash` to `git hash-object PLAN.md`. If they differ, warn the user that `PLAN.md` changed since the design was approved and ask via **AskUserQuestion** whether to **re-run `/plan`** (recommended — refresh the design) or **proceed anyway**. Pass the design's existence and the `.claude/loadout/ui/` paths to the orchestrator.
 
 2. **Run setup first (every build run).** Before launching the orchestrator:
    a. **Check the working tree.** Run `git status`. If there are uncommitted changes or untracked files, stop, show them, and ask the user how to proceed via the **AskUserQuestion** tool: **Commit them**, **Stash them aside** (restore later with `git stash pop`), or **Cancel** the build. Act on the choice; never switch branches over a dirty tree.
@@ -30,6 +31,7 @@ Optional notes from the user: $ARGUMENTS
 > 0. You are already on the project's **feature branch** (the launcher created or switched to it from the base branch, per `.claude/loadout.yml`). Do all work and commits on this branch; never switch to or commit on the base branch.
 > 1. Read `PLAN.md` and, if present, `PROGRESS.md`. If `PROGRESS.md` doesn't exist, create it from the plan's phases/tasks, all marked `pending` (see template).
 > 2. **Phase 0 — scaffold:** if the project isn't set up yet, scaffold it per the plan's stack (e.g. Vite + React + Tailwind, or NestJS; run `shadcn init` for UI projects). Follow `loadout:frontend-standards` / `loadout:backend-standards`.
+> 2b. **Phase 0 — apply the design tokens (frontend slices that have a `UI-SPEC.md`):** as a **single scaffold task, before any frontend worker runs**, read `.claude/loadout/ui/tokens.json` and write its resolved `shadcn` light + dark CSS variables into the theme file (e.g. `src/index.css` / `globals.css`), overwriting every `shadcn init` default so none survives. If `tokens.json` has no pre-resolved `shadcn` block, apply the **Token → shadcn theme mapping** in `loadout:ui-design`. **Workers never edit theme files** — the theme is set once here.
 >
 > **For each phase, in plan order (run all phases through — don't stop between them):**
 > 1. Mark the phase `in-progress` in `PROGRESS.md`.
@@ -39,6 +41,7 @@ Optional notes from the user: $ARGUMENTS
 >    - **`backend-engineer`** for API / NestJS / Prisma / data tasks
 >    If a task spans both, split it so each expert gets its part. (If an expert agent type isn't available to you, fall back to a `general-purpose` worker and include the standard-reading mandate in its brief.)
 >    Give each worker: the specific task, the file(s) it touches (from the plan), and **which standard(s) apply**. The expert agents already treat reading the applicable standard (`loadout:frontend-standards` / `loadout:backend-standards`, and `loadout:shadcn` for UI) as a mandatory first step and use the shadcn MCP — still name the applicable standard in the brief so there's no doubt.
+>    **For a frontend worker when a `UI-SPEC.md` exists,** also hand it: the relevant **screen(s)** from `UI-SPEC.md`, their **component map** (existing component vs `new`), the **required states** (loading/empty/error/success/partial), and the **tokens path** (`.claude/loadout/ui/tokens.json`). The theme is already applied (step 2b) — the worker consumes tokens, never edits theme files.
 > 4. As tasks move, update their status in `PROGRESS.md` (`pending` → `in-progress` → `done`, or `blocked` with a reason).
 > 5. When the phase's tasks are done, run its **"Done when"** checks (typecheck, build, and tests where present). Fix failures (delegate if needed) before marking the phase `done`.
 > 6. **Commit the completed phase:** `git add -A` and commit with a message like `Build: Phase N — <title>`, ending the message with:
@@ -47,6 +50,8 @@ Optional notes from the user: $ARGUMENTS
 > 7. Move to the next phase.
 >
 > **If blocked:** mark the task `blocked` in `PROGRESS.md` with the reason, skip to work that isn't blocked, and report all blocked items at the end rather than stalling the whole build.
+>
+> **UI design deviations (two tiers, when building against `UI-SPEC.md`):** a worker reports any gap between the spec and what it could build; you log it in the **Deviations** section of `PROGRESS.md`. **Minor** — a contrast pair fixed by adjusting lightness per the token pipeline, or a nearest-equivalent component substitution: the worker applies it, you log it, continue. **Structural** — a screen or state that can't be built as specified: the worker skips it, you log it and report it at the end. **Never silently redesign** — a real design change means going back to `/plan`.
 >
 > **When all phases are processed:** give a final summary — phases completed, commits made, anything blocked or deferred.
 
@@ -64,6 +69,9 @@ Notes: <blockers, decisions, follow-ups>
 
 ## Phase 2 — <title>  [pending]
 - [ ] <task>
+
+## Deviations
+<none — or one line each: screen · state · minor (applied) / structural (skipped) — reason>
 ```
 
 ## Rules
@@ -72,4 +80,5 @@ Notes: <blockers, decisions, follow-ups>
 - Commit after each completed phase; never push (that's `/ship`).
 - Keep `PROGRESS.md` current — it's the source of truth for where the build stands.
 - Standards are mandatory: the orchestrator names and locates the applicable standard for each task, and every worker must read it before writing code. Use the shadcn MCP for UI.
+- When a `UI-SPEC.md` is present: apply its tokens once in Phase 0 (workers never edit theme files), build frontend against the spec, and log every deviation (minor/structural) to `PROGRESS.md`. If `plan_hash` is stale, resolve that before building.
 - Don't re-ask product/plan questions already settled; only surface a genuine blocker.
