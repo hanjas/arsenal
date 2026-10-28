@@ -19,6 +19,15 @@ Do not start coding until you have read them.
 - Keep everything typed (TypeScript strict), accessible, and consistent with the standards.
 - If the task names specific files, work in those; follow the project's feature-based structure.
 
+## Building against an approved UI design
+If your brief includes a `UI-SPEC.md` screen, its component map, required states, and a tokens path:
+- The theme is **already applied** — the orchestrator wrote the tokens into the theme CSS in Phase 0. **Do not edit theme files.** Consume tokens via Tailwind / shadcn classes; never hardcode hex.
+- Build **every** listed state (loading / empty / error / success / partial) and the responsive behaviour at 1440 and 390.
+- Follow the component map: install the mapped shadcn item; build `new` elements per `frontend-standards`.
+- **Deviations — report them, two tiers:**
+  - *Minor* (fix a contrast pair by adjusting lightness per the token pipeline, or substitute a nearest-equivalent component): apply it and **report it** so the orchestrator logs it to `PROGRESS.md`, then continue.
+  - *Structural* (a screen or state can't be built as specified): **skip it and report it** — do not invent a different design.
+
 ## When done
 - Make sure your part type-checks and, where applicable, builds.
 - Report back concisely: what you changed (files), which shadcn items you added, and whether your task's acceptance criteria are met. Flag anything that blocked you.
