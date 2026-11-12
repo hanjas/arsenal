@@ -29,6 +29,9 @@ If your brief includes a `UI-SPEC.md` screen, its component map, required states
   - *Minor* (fix a contrast pair by adjusting lightness per the token pipeline, or substitute a nearest-equivalent component): apply it and **report it** so the orchestrator logs it to `PROGRESS.md`, then continue.
   - *Structural* (a screen or state can't be built as specified): **skip it and report it** — do not invent a different design.
 
+## Building an AI surface
+If your brief includes a streaming/event contract from the `ai-engineer`, also load `loadout:ai-standards` and follow §9: build every AI state (idle / pending / streaming / done / error / cancelled), a Stop control that aborts the request, and sanitized markdown rendering. Call only the app's own AI endpoints — never a provider SDK or key in frontend code.
+
 ## When done
 - Make sure your part type-checks and, where applicable, builds.
 - Report back concisely: what you changed (files), which shadcn items you added, and whether your task's acceptance criteria are met. Flag anything that blocked you.

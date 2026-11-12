@@ -1,6 +1,6 @@
 ---
 description: Turn CONCEPT.md's "Build first" slice into a detailed, phased implementation plan (PLAN.md). Always runs its own technical clarifying round, then writes the plan. No code.
-argument-hint: (optional notes; --ui / --no-ui to force or skip the UI design phase; --feature <slug> to target a slice)
+argument-hint: (optional notes; --ui / --no-ui to force or skip the UI design phase; --ai / --no-ai to force or skip the AI integration questions; --feature <slug> to target a slice)
 ---
 
 You are running the **plan** stage of the development workflow. You turn the agreed concept into a concrete, phased implementation plan — and nothing more. Do **not** write code or scaffold the project. That is the `/build` stage.
@@ -34,12 +34,22 @@ Work conversationally, across turns. Keep context light — this stage only prod
    - Anything ambiguous that affects structure or order
    Record every answer as a decision.
 
-3. **Apply the standards.** Use `loadout:frontend-standards` and `loadout:backend-standards` for project structure, file layout, and conventions, so the plan's file hints match how the code will actually be organized.
+   **AI integration questions (AI slices only).** Decide whether they apply:
+   - Read `.claude/loadout/config.yml` → `features.<feature-slug>.ai.mode` if present. `always` → ask; `never` → skip; `auto` (default/absent) → ask **only if the slice involves AI** — the concept/change mentions an LLM, AI, chat or assistant, agents, generation, summarization, classification, embeddings, semantic search, or RAG, or the codebase already has an AI module in scope. `--ai` in `$ARGUMENTS` forces it on; `--no-ai` forces it off.
+   - **If they apply,** add these to the same one-at-a-time round (skip any the concept or existing codebase already answers — e.g. a provider SDK already in `package.json`):
+     - **Provider** (e.g. Anthropic, OpenAI, Google, self-hosted)
+     - **Integration style** — provider's official SDK directly (recommended default) vs. a framework (LangChain, Vercel AI SDK, …) and why
+     - **Capabilities** the slice needs (multiSelect): streaming chat, structured output, tool use / agent loop, embeddings + retrieval (RAG)
+     - **Limits** — per-user rate limit and max input/output size, if not obvious from the concept
+     Don't ask the user for an exact model ID — record the model *tier* if they care (e.g. "fast/cheap" vs "most capable"); the build looks up the current ID from the provider's docs.
+
+3. **Apply the standards.** Use `loadout:frontend-standards` and `loadout:backend-standards` for project structure, file layout, and conventions, so the plan's file hints match how the code will actually be organized. For AI slices also apply `loadout:ai-standards`: plan the `src/ai/` module, the env vars (key + `AI_MODEL`), the streaming contract, the mocked-client tests, and the AI UI states, and tag those tasks `Standards: ai-standards` so `/build` routes them to the `ai-engineer`.
 
 4. **Draft a detailed phased plan** (see template) and show it inline for the user's thumbs-up. Each phase breaks into tasks, each task names the **file(s)** it touches and the phase has a **"Done when"** check. Note the **order/dependencies** between phases and which **standards** apply.
 
 5. **On approval, persist the plan.**
    - Write the plan to **`<feature-dir>/PLAN.md`**.
+   - **AI slices:** write/merge an `ai:` block into `features.<feature-slug>.ai` in `.claude/loadout/config.yml` (`mode`, `provider`, `integration`, `capabilities`) and save the provider/integration choice to **recall** (`type: decision`, `importance: 3`, `project_ref` = the concept name) if available.
    - Save a short summary to **recall** via `save_memory` (`type: project`, `title`: "<name> — plan", `importance: 4`, `project_ref` = the concept name) if recall is available; skip silently if not.
 
 6. **UI design phase (frontend slices only).** Decide whether to run it:
@@ -64,6 +74,9 @@ From CONCEPT.md — "Build first" slice.
 ## Decisions
 <each technical decision from the clarifying round: topic → choice>
 
+## AI integration
+<AI slices only — omit otherwise. Provider · integration style (SDK / framework) · model tier · capabilities (streaming, structured output, tools, RAG) · env vars · streaming/event contract · limits (rate, input/output size) · live smoke test flag>
+
 ## Phases
 
 ### Phase 1 — <title>
@@ -72,7 +85,7 @@ From CONCEPT.md — "Build first" slice.
 - <task>
     · <file or module it touches>
 - Done when: <concrete, checkable criteria>
-- Standards: <frontend-standards / backend-standards / both>
+- Standards: <frontend-standards / backend-standards / ai-standards — any that apply>
 
 ### Phase 2 — <title>
 - ...
@@ -90,6 +103,7 @@ Plan created <date>. Ready for /build.
 ## Rules
 - Plan only the **Build first** slice; never the full vision.
 - Always run the clarifying round via AskUserQuestion, one question at a time — but don't re-ask what `CONCEPT.md` already answers.
+- For AI slices (per `ai.mode` / `--ai` / `--no-ai`), include the AI integration questions, fill the plan's **AI integration** section, and apply `loadout:ai-standards`. Never pin an exact model ID in the plan.
 - No code, no scaffolding of the app — only the plan (the `.claude/loadout/` scaffold is fine to create when a concept was pasted).
 - Don't write `PLAN.md` or save to recall until the user approves the drafted plan.
 - Run the **UI design phase** (ui-designer agent) for frontend slices per the feature's `ui.mode` / `--ui` / `--no-ui`. The agent drafts and returns; **you** own its approval gate (present, collect feedback, re-spawn until approved) — never let it converse with the user directly. Persist `UI-SPEC.md`, the feature's `ui:` config, and `plan_hash` only after approval.

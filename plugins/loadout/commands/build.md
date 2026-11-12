@@ -49,13 +49,15 @@ Call the resolved path `<feature-dir>` = `.claude/loadout/<feature-slug>/` for t
 > 3. Delegate each task to the right **expert worker agent** (Agent tool):
 >    - **`frontend-engineer`** for UI / React / frontend tasks
 >    - **`backend-engineer`** for API / NestJS / Prisma / data tasks
->    If a task spans both, split it so each expert gets its part. (If an expert agent type isn't available to you, fall back to a `general-purpose` worker and include the standard-reading mandate in its brief.)
+>    - **`ai-engineer`** for AI tasks (tagged `Standards: ai-standards`) — provider client, prompts, streaming endpoints, structured output, tools/agents, embeddings/retrieval
+>    If a task spans more than one, split it so each expert gets its part (e.g. the streaming endpoint to `ai-engineer`, the chat screen to `frontend-engineer`). (If an expert agent type isn't available to you, fall back to a `general-purpose` worker and include the standard-reading mandate in its brief.)
 >    Give each worker: the specific task, the file(s) it touches (from the plan), and **which standard(s) apply**. The expert agents already treat reading the applicable standard (`loadout:frontend-standards` / `loadout:backend-standards`, and `loadout:shadcn` for UI) as a mandatory first step and use the shadcn MCP — still name the applicable standard in the brief so there's no doubt.
 >    **For a frontend worker when a `UI-SPEC.md` exists,** also hand it: the relevant **screen(s)** from `<feature-dir>/UI-SPEC.md`, their **component map** (existing component vs `new`), the **required states** (loading/empty/error/success/partial), and the **tokens path** (`<feature-dir>/ui/tokens.json`). The theme is already applied (step 2b) — the worker consumes tokens, never edits theme files.
+>    **For AI work when `PLAN.md` has an "AI integration" section,** hand the `ai-engineer` that section (provider, integration style, model tier, capabilities, env vars, limits). Hand a frontend worker building an AI surface the **streaming/event contract** the `ai-engineer` reported, and tell it to also load `loadout:ai-standards` (§9 AI UI states). Run the AI backend task before the AI UI task that consumes it.
 > 4. As tasks move, update their status in `<feature-dir>/PROGRESS.md` (`pending` → `in-progress` → `done`, or `blocked` with a reason).
 > 5. When the phase's tasks are done, run its **"Done when"** checks (typecheck, build, and tests where present). Fix failures (delegate if needed) before marking the phase `done`.
 > 6. **Commit the completed phase:** `git add -A` and commit with a message like `Build: Phase N — <title>`, ending the message with:
->    `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
+>    `Co-Authored-By: Claude <your model name> <noreply@anthropic.com>` (use the model you are actually running as — don't copy a name from elsewhere)
 >    Do **not** push — pushing is the `/ship` stage.
 > 7. Move to the next phase.
 >
@@ -89,6 +91,6 @@ Notes: <blockers, decisions, follow-ups>
 - Run all phases through; the orchestrator chooses parallel vs sequential per task from the plan's dependencies.
 - Commit after each completed phase; never push (that's `/ship`).
 - Keep `PROGRESS.md` current — it's the source of truth for where the build stands.
-- Standards are mandatory: the orchestrator names and locates the applicable standard for each task, and every worker must read it before writing code. Use the shadcn MCP for UI.
+- Standards are mandatory: the orchestrator names and locates the applicable standard for each task, and every worker must read it before writing code. Use the shadcn MCP for UI. AI tasks go to the `ai-engineer`, which also looks up the provider's current docs before coding.
 - When a `UI-SPEC.md` is present: apply its tokens once in Phase 0 (workers never edit theme files), build frontend against the spec, and log every deviation (minor/structural) to `PROGRESS.md`. If `plan_hash` is stale, resolve that before building.
 - Don't re-ask product/plan questions already settled; only surface a genuine blocker.
