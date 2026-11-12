@@ -8,7 +8,7 @@
     {
       "name": "loadout",
       "source": "./plugins/loadout",
-      "description": "A broad toolkit of skills and tools. Starts with frontend coding standards."
+      "description": "A guided dev workflow for React + NestJS apps: brainstorm, plan, build, verify, and ship, with expert frontend, backend, AI-integration, and UI-design agents and their coding standards."
     },
     {
       "name": "recall",

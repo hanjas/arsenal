@@ -1,6 +1,6 @@
 ---
 description: Run the whole loadout workflow end to end as one guided mission. New ideas go brainstorm → plan → build → verify → ship; changes to an existing repo skip brainstorm and go plan → build → verify → ship. Flows stage to stage automatically, pausing only at the human-approval gates each stage already has.
-argument-hint: "<what you want — a new idea, or a change to make> (optional flags — --new / --change to force the track, --ui / --no-ui, --feature <slug>, --from <stage>)"
+argument-hint: "<what you want — a new idea, or a change to make> (optional flags — --new / --change to force the track, --ui / --no-ui, --ai / --no-ai, --feature <slug>, --from <stage>)"
 ---
 
 You are the **conductor** of a full loadout **mission**. A mission runs the development workflow from a one-line request to an open pull request. The individual stages already exist as their own commands; your job is not to reinvent them but to **pick the right starting stage, run each stage in turn, and flow into the next** — keeping the main session thin.
@@ -60,7 +60,7 @@ So a mission is **fully sequenced but not unattended**: it stops wherever a huma
    - verify → `${CLAUDE_PLUGIN_ROOT}/commands/verify.md`
    - ship → `${CLAUDE_PLUGIN_ROOT}/commands/ship.md`
 
-   Pass `$ARGUMENTS` through to each stage (so `--ui`/`--no-ui` reach `/plan`, `--feature` reaches all of them). On the **change track**, `/plan` runs without a `CONCEPT.md` — hand it the change description as its input; it plans directly from that.
+   Pass `$ARGUMENTS` through to each stage (so `--ui`/`--no-ui` and `--ai`/`--no-ai` reach `/plan`, `--feature` reaches all of them). On the **change track**, `/plan` runs without a `CONCEPT.md` — hand it the change description as its input; it plans directly from that.
 
 6. **Hand off between stages.** At the end of each stage, print a short **mission checkpoint**: which stage finished, what it produced (name the artifact paths), and which stage you're starting next. Then start it — don't stop and wait for a command.
 
@@ -81,7 +81,7 @@ A mission can be long. Follow the same discipline the stages do: `build` and `ve
 - **Run setup on the change track.** Brainstorm owns the scaffold on the new track; mission runs the shared scaffold step itself before `/plan` on the change track so the folder + `config.yml` exist.
 - **Never skip or auto-pass an approval gate.** A mission removes only the *stop-and-wait-for-the-next-command* seam between stages — not the human decisions inside them.
 - **Preserve each stage's contract:** brainstorm/plan write no code, build is the only stage that writes code, verify only reports, ship only releases and refuses on a red verify. You don't change what a stage does — you just run the next one after it.
-- **Resolve the feature once** and reuse the slug across all stages; respect `--feature`, `--ui`/`--no-ui`, `--from`.
+- **Resolve the feature once** and reuse the slug across all stages; respect `--feature`, `--ui`/`--no-ui`, `--ai`/`--no-ai`, `--from`.
 - **Resume cleanly** — start at the first incomplete stage and confirm before redoing a completed one.
 - **Stop on a red verify** — loop through build to fix, or stop; never ship a failing slice.
 - Report each handoff plainly so the user always knows which stage they're in and what it produced.

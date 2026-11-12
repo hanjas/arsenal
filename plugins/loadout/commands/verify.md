@@ -47,11 +47,20 @@ Call the resolved path `<feature-dir>` = `.claude/loadout/<feature-slug>/` for t
 >    - **If the Playwright MCP isn't available, skip the visual lines and report them as "not run" — never as passed.** Not-run visual checks are not failures by themselves.
 >    - **If the Playwright MCP is present but its browser isn't installed** (a launch/"browser not found" error), also report the visual lines as **not run**, with the fix: `npx playwright install chromium`. Still not a failure.
 >
-> 5. **Write the report** to `<feature-dir>/VERIFY.md` (see template): every check with pass/fail, each functional criterion with the result, the UI-check results, and a clear list of failures and gaps vs the plan — described precisely (where it is, what's wrong) but **not fixed**.
+> 4b. **AI integration checks** — only if `<feature-dir>/PLAN.md` has an **AI integration** section. Check against `loadout:ai-standards`:
+>    - **Key isolation:** no provider key or provider SDK import in frontend source, and no key-shaped string (e.g. `sk-`, `sk-ant-`) or AI key env var in the production frontend bundle. No real key committed anywhere; `.env.example` lists the AI vars with placeholders. A leak is a **failure**.
+>    - **Model config:** the model ID comes from config (`AI_MODEL` or equivalent), not hardcoded in feature code.
+>    - **Mocked tests:** the default test run passes **without** a real key and makes no network calls to the provider (run it with the AI key env vars unset).
+>    - **Failure handling:** with the provider unreachable or the key invalid, the AI endpoint returns the app's safe error shape (no stack trace, no provider message leaked) and the UI shows its error state.
+>    - **Guards & limits:** the AI endpoint rejects unauthenticated requests and oversized input; a rate limit is configured.
+>    - **Streaming** (if planned): events arrive incrementally, the UI's Stop action aborts the request, and the backend aborts the upstream call on client disconnect (check the code path if you can't observe it).
+>    - **Live smoke test:** only if a real key is available in the environment — run the opt-in live tests (e.g. `AI_LIVE_TESTS=1`) once. If there's no key, report it **not run** — never as passed. Not-run live checks are not failures by themselves.
+>
+> 5. **Write the report** to `<feature-dir>/VERIFY.md` (see template): every check with pass/fail, each functional criterion with the result, the UI-check and AI-check results, and a clear list of failures and gaps vs the plan — described precisely (where it is, what's wrong) but **not fixed**.
 >
 > 6. **Save a short summary to recall** via `save_memory` (`type: project`, `title`: "<name> — verify", `importance: 4`, `project_ref` = the concept name) if recall is available; skip silently if not.
 >
-> 7. **Verdict:** state clearly whether it's ready for `/ship` or needs fixes via `/build`. Unlogged UI mismatches and failing checks block; not-run visual checks are noted, not blocking.
+> 7. **Verdict:** state clearly whether it's ready for `/ship` or needs fixes via `/build`. Unlogged UI mismatches, a leaked AI key, and failing checks block; not-run visual and live-AI checks are noted, not blocking.
 
 ## VERIFY.md template
 
@@ -76,6 +85,15 @@ Verified: <timestamp>
 - Accepted deviations (logged in PROGRESS.md): <list or none>
 - Visual checks: <ran | not run — Playwright MCP unavailable | not run — browser not installed, run `npx playwright install chromium`>
 
+## AI integration checks (if the plan has an AI integration section)
+- Key isolation (frontend source + bundle): <pass/fail>
+- Model from config: <pass/fail>
+- Tests pass with mocked client, no key: <pass/fail>
+- Provider failure → safe error + UI error state: <pass/fail>
+- Auth, input cap, rate limit: <pass/fail>
+- Streaming + cancel: <pass/fail | n/a>
+- Live smoke test: <pass/fail | not run — no key available>
+
 ## Failures & gaps
 <each problem: where it is, what's wrong — report only, not fixed>
 
@@ -91,5 +109,6 @@ Verified <date>.
 - Do **both** static checks and a functional run of the app; a green build is not proof it works.
 - Verify against the plan's acceptance criteria, not just "it compiles".
 - If a `UI-SPEC.md` exists, check `acceptance.md` and contrast against the tokens; report unlogged spec mismatches as **failures** and `PROGRESS.md`-logged ones as **accepted deviations**. If the Playwright MCP is unavailable, mark visual checks **not run**, never passed.
+- If the plan has an **AI integration** section, run the AI checks; a leaked key is always a **failure**, and a live smoke test without a key is **not run**, never passed.
 - Run via the verifier subagent on **Sonnet** (mechanical execution, not the session's model); keep the main session light.
 - Be honest and precise about failures — this stage's value is telling the truth.

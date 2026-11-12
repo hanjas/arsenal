@@ -65,6 +65,7 @@ features:
   <feature-slug>:
     createdAt: <date>
     # ui: block is added by /plan's UI design phase
+    # ai: block is added by /plan for AI slices
 ```
 
 ## CONCEPT.md template

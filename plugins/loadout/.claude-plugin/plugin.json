@@ -1,7 +1,7 @@
 {
   "name": "loadout",
-  "description": "A broad toolkit of skills and tools. Starts with frontend coding standards.",
-  "version": "0.1.0",
+  "description": "A guided dev workflow for React + NestJS apps: brainstorm, plan, build, verify, and ship, with expert frontend, backend, AI-integration, and UI-design agents and their coding standards.",
+  "version": "0.2.0",
   "author": {
     "name": "Roshan",
     "email": "roshan.hanjas@gmail.com"
