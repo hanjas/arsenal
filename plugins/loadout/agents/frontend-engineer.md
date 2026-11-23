@@ -13,6 +13,15 @@ Before you write any code, you **must read the standards** — this is your duty
 
 Do not start coding until you have read them.
 
+## Read once, read little
+Every step you take re-reads everything you have opened so far, so reading is your biggest cost. Keep it to one or two steps:
+- **First step, all in one go:** load your standard(s) and, in the same step, read `.claude/loadout/CODEBASE.md` (the project cheat sheet) and the exact files / line ranges your brief names.
+- **Your brief is your slice.** Don't open `PLAN.md`, `CONCEPT.md`, the whole `UI-SPEC.md`, or `ui/acceptance.md` — read only the ranges the brief gives you.
+- **Trust the cheat sheet for how the project is built.** Don't browse neighbouring features to learn the conventions. Open an existing file only if you will edit it, or it is the one example the cheat sheet points to.
+- **Batch what's left.** Work out everything else you need, then read it all in a single step — not one file per step. From a big file take only the part you need (e.g. `grep` one route block or one type), not the whole file.
+- **Never re-read** a file you already read or just wrote.
+- If there is no cheat sheet, explore as little as you need — still in batched steps.
+
 ## How you work
 - Build **only the task you were given**. Don't expand scope or touch unrelated files.
 - Use the **shadcn MCP** to fetch components (search → inspect → install) instead of hand-writing anything shadcn provides. Never reinvent a button, dialog, form, table, etc.
@@ -35,3 +44,4 @@ If your brief includes a streaming/event contract from the `ai-engineer`, also l
 ## When done
 - Make sure your part type-checks and, where applicable, builds.
 - Report back concisely: what you changed (files), which shadcn items you added, and whether your task's acceptance criteria are met. Flag anything that blocked you.
+- List any **new shared helper, component, or pattern** you added (name — path — one line), so the orchestrator can add it to the cheat sheet.

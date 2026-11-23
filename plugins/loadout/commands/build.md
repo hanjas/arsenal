@@ -42,6 +42,11 @@ Call the resolved path `<feature-dir>` = `.claude/loadout/<feature-slug>/` for t
 > 1. Read `<feature-dir>/PLAN.md` and, if present, `<feature-dir>/PROGRESS.md`. If `PROGRESS.md` doesn't exist, create it at `<feature-dir>/PROGRESS.md` from the plan's phases/tasks, all marked `pending` (see template).
 > 2. **Phase 0 — scaffold:** if the project isn't set up yet, scaffold it per the plan's stack (e.g. Vite + React + Tailwind, or NestJS; run `shadcn init` for UI projects). Follow `loadout:frontend-standards` / `loadout:backend-standards`. (The app's own code lives at the project root — only loadout's artifacts live under `.claude/loadout/`.)
 > 2b. **Phase 0 — apply the design tokens (frontend slices that have a `<feature-dir>/UI-SPEC.md`):** as a **single scaffold task, before any frontend worker runs**, read `<feature-dir>/ui/tokens.json` and write its resolved `shadcn` light + dark CSS variables into the theme file (e.g. `src/index.css` / `globals.css`), overwriting every `shadcn init` default so none survives. If `tokens.json` has no pre-resolved `shadcn` block, apply the **Token → shadcn theme mapping** in `loadout:ui-design`. **Workers never edit theme files** — the theme is set once here.
+> 3. **Project cheat sheet — `.claude/loadout/CODEBASE.md`.** Workers start cold; without it every one of them re-reads the same files to learn how the project is built. It is shared by all slices of the project, so reuse it if it exists.
+>    - **Missing, and the project already has app code:** spawn ONE worker (`general-purpose`, `model: sonnet`) to survey the code and write it from the template below. Don't survey it yourself — that reading would sit in your context for the whole build.
+>    - **Missing, on a new project:** write it right after the Phase 0 scaffold, from what the scaffold produced.
+>    - Keep it **short (about 120 lines at most)**: pointers and one-line descriptions, never pasted code.
+> 4. **Index the big docs once.** Run `grep -n '^## ' <feature-dir>/UI-SPEC.md` (if it exists) and keep the heading → line-range list. You hand workers line ranges from it; you don't read the spec's body yourself.
 >
 > **For each phase, in plan order (run all phases through — don't stop between them):**
 > 1. Mark the phase `in-progress` in `<feature-dir>/PROGRESS.md`.
@@ -51,11 +56,19 @@ Call the resolved path `<feature-dir>` = `.claude/loadout/<feature-slug>/` for t
 >    - **`backend-engineer`** for API / NestJS / Prisma / data tasks
 >    - **`ai-engineer`** for AI tasks (tagged `Standards: ai-standards`) — provider client, prompts, streaming endpoints, structured output, tools/agents, embeddings/retrieval
 >    If a task spans more than one, split it so each expert gets its part (e.g. the streaming endpoint to `ai-engineer`, the chat screen to `frontend-engineer`). (If an expert agent type isn't available to you, fall back to a `general-purpose` worker and include the standard-reading mandate in its brief.)
->    Give each worker: the specific task, the file(s) it touches (from the plan), and **which standard(s) apply**. The expert agents already treat reading the applicable standard (`loadout:frontend-standards` / `loadout:backend-standards`, and `loadout:shadcn` for UI) as a mandatory first step and use the shadcn MCP — still name the applicable standard in the brief so there's no doubt.
->    **For a frontend worker when a `UI-SPEC.md` exists,** also hand it: the relevant **screen(s)** from `<feature-dir>/UI-SPEC.md`, their **component map** (existing component vs `new`), the **required states** (loading/empty/error/success/partial), and the **tokens path** (`<feature-dir>/ui/tokens.json`). The theme is already applied (step 2b) — the worker consumes tokens, never edits theme files.
+>    **Hand each worker only its slice.** A worker re-reads everything it has opened on every step it takes, so a brief that points at whole documents is the most expensive kind. The brief must be enough to start work without opening `PLAN.md`, `CONCEPT.md`, or the full `UI-SPEC.md`. Put in it:
+>    - the specific task, its **"Done when"** line, and any plan **Decisions** that affect it — pasted in, not referenced
+>    - the file(s) it touches (from the plan)
+>    - the cheat sheet path (`.claude/loadout/CODEBASE.md`)
+>    - **only that worker's own standard(s)** — `loadout:backend-standards` for backend; `loadout:frontend-standards` + `loadout:shadcn` for frontend. The expert agents already load these as a mandatory first step; don't tell a worker to load another role's standard.
+>    - **backend:** the names of the schema models the task reads or changes, so the worker pulls just those from the schema
+>    - **frontend, after a backend task in the same phase:** have the backend worker write its API contract (routes, request/response shapes) to a short file under `<feature-dir>/api/`, and give the frontend worker that path, so it never reads backend code
+>    **For a frontend worker when a `UI-SPEC.md` exists,** also hand it the spec path with the **exact line ranges** of its screen(s) and of the Global decisions section (from your index, step 4) — each screen section already carries its component map and required states (loading/empty/error/success/partial) — plus the **tokens path** (`<feature-dir>/ui/tokens.json`). Don't point workers at `ui/acceptance.md` (it restates the spec's states for `/verify`), and name a wireframe only if the layout isn't clear from the spec section. The theme is already applied (step 2b) — the worker consumes tokens, never edits theme files.
+>    A **backend** worker gets a `UI-SPEC.md` line range only when the API it builds feeds a screen — then just that screen's range.
 >    **For AI work when `PLAN.md` has an "AI integration" section,** hand the `ai-engineer` that section (provider, integration style, model tier, capabilities, env vars, limits). Hand a frontend worker building an AI surface the **streaming/event contract** the `ai-engineer` reported, and tell it to also load `loadout:ai-standards` (§9 AI UI states). Run the AI backend task before the AI UI task that consumes it.
 > 4. As tasks move, update their status in `<feature-dir>/PROGRESS.md` (`pending` → `in-progress` → `done`, or `blocked` with a reason).
 > 5. When the phase's tasks are done, run its **"Done when"** checks (typecheck, build, and tests where present). Fix failures (delegate if needed) before marking the phase `done`.
+>    Then **update the cheat sheet** with what the phase added — new shared helpers, components, and patterns, taken from the workers' reports (they list them). Don't re-survey the code for this.
 > 6. **Commit the completed phase:** `git add -A` and commit with a message like `Build: Phase N — <title>`, ending the message with:
 >    `Co-Authored-By: Claude <your model name> <noreply@anthropic.com>` (use the model you are actually running as — don't copy a name from elsewhere)
 >    Do **not** push — pushing is the `/ship` stage.
@@ -86,8 +99,35 @@ Notes: <blockers, decisions, follow-ups>
 <none — or one line each: screen · state · minor (applied) / structural (skipped) — reason>
 ```
 
+## CODEBASE.md template
+
+```markdown
+# Codebase cheat sheet — <Project>
+
+Updated: <date> (after <slice> Phase N)
+
+## Commands
+<per app: install, typecheck, lint, test (unit / e2e), build, migrate, seed — and any rule for running them>
+
+## Where things live
+<one line per top-level folder / layer>
+
+## How to add …
+- <a route / screen>: <files to touch, in order> — example: <one file path>
+- <an API endpoint / module>: <files to touch> — example: <one file path>
+- <a data query / mutation>: <...> — example: <one file path>
+- <a schema change / migration>: <...>
+
+## Shared helpers & components
+- <name> — <path> — <one line: what it does>
+
+## Conventions & gotchas
+<naming, dates/money/ids, roles & guards, realtime, env/test DB rules — only what a newcomer would get wrong>
+```
+
 ## Rules
 - The main session orchestrates via subagents; it does not write feature code itself.
+- Keep worker reading small: maintain the cheat sheet (`.claude/loadout/CODEBASE.md`), and brief each worker with only its slice — pasted task + decisions, line ranges into `UI-SPEC.md`, model names for the schema — never "read the plan / the spec / neighbouring features".
 - Run all phases through; the orchestrator chooses parallel vs sequential per task from the plan's dependencies.
 - Commit after each completed phase; never push (that's `/ship`).
 - Keep `PROGRESS.md` current — it's the source of truth for where the build stands.

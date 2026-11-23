@@ -14,9 +14,11 @@ Everything a loadout run produces lives under the project's `.claude/loadout/` f
 ```
 .claude/loadout/
   config.yml                 project-level config + active-feature pointer
+  CODEBASE.md                project cheat sheet for build workers (written by /build)
   <feature-slug>/            one folder per slice
     CONCEPT.md  PLAN.md  PROGRESS.md  VERIFY.md  UI-SPEC.md
     ui/ { tokens.json, acceptance.md, wireframes/*.html }
+    api/*.md                 API contracts handed from backend to frontend workers (written by /build)
 ```
 
 `<feature-slug>` is a kebab-case slug derived from the concept name (e.g. "Kanban Task Tracker" → `kanban-task-tracker`). This stage owns creating that folder and the config. Nothing is written to disk until the user approves the brief.
